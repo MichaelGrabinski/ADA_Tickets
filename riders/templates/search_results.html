@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Search Results</h2>
+<table class="table table-striped table-sm">
+  <thead>
+    <tr>
+      <th>Last Name</th><th>First Name</th><th>ADA ID</th>
+      <th>Street #</th><th>Street</th><th>Apt</th><th>Zip</th><th>Inactive</th><th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for r in riders %}
+    <tr>
+      <td>{{ r.lname }}</td>
+      <td>{{ r.fname }}</td>
+      <td>{{ r.adaid }}</td>
+      <td>{{ r.aptstnum }}</td>
+      <td>{{ r.aptstname }}</td>
+      <td>{{ r.aptunit }}</td>
+      <td>{{ r.zip }}</td>
+      <td>{% if r.Inactive %}Yes{% else %}No{% endif %}</td>
+      <td><a class="btn btn-sm btn-primary" href="{% url 'rider_detail' r.NEW_ID %}">Open</a></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="9">No matches.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
