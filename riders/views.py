@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from .models import AdaRiderQ, AdaTicketPurchasesT  # use your existing tables
 from .forms import RiderSearchForm  # keep using the simple search form
 
+@login_Required
 def home(request):
     form = RiderSearchForm(initial={'by': 'name'})
     return render(request, 'home.html', {'form': form})
