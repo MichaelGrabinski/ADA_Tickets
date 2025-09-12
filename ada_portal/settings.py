@@ -9,7 +9,7 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(','
 INSTALLED_APPS = [
     'django.contrib.admin','django.contrib.auth','django.contrib.contenttypes',
     'django.contrib.sessions','django.contrib.messages',
- #   'riders','mozilla_django_oidc',
+    'riders','mozilla_django_oidc',
  'django.contrib.staticfiles',
  'riders.apps.RidersConfig',
 ]
@@ -62,14 +62,40 @@ DATABASES = {'default':{
 
 }}
 AUTHENTICATION_BACKENDS = [
- #   'mozilla_django_oidc.auth.OIDCAuthenticationBackend','django.contrib.auth.backends.ModelBackend',
+    'mozilla_django_oidc.auth.OIDCAuthenticationBackend','django.contrib.auth.backends.ModelBackend',
 ]
+
+
+LOGIN_URL = '/oidc/authenticate/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+
 
 
 STATIC_URL = 'static/'             # or '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'riders' / 'static']  # optional; create the folder or remove this line
 # For production (optional):
 # STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+
+
+import os
+
+TENANT_ID = os.environ.get('AZURE_TENANT_ID')
+OIDC_RP_CLIENT_ID = os.environ.get('AZURE_CLIENT_ID')
+OIDC_RP_CLIENT_SECRET = os.environ.get('AZURE_CLIENT_SECRET')
+OIDC_RP_SCOPES = 'openid profile email'
+OIDC_RP_SIGN_ALGO = 'RS256'
+OIDC_STORE_ACCESS_TOKEN = True
+OIDC_STORE_ID_TOKEN = True
+OIDC_USE_NONCE = True
+
+# Discovery (simplest):
+OIDC_OP_DISCOVERY_ENDPOINT = f"https://login.microsoftonline.com/{TENANT_ID}/v2.0/.well-known/openid-configuration"
+
+
+
+
 
 
 

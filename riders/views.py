@@ -71,14 +71,46 @@ def rider_inactive(request, pk):
     rider.save(update_fields=['Inactive'])
     return redirect('rider_detail', pk=pk)
 
+from datetime import date, datetime, timedelta
+from django.db.models import Sum
+from django.db.models.functions import TruncDate
+from django.utils.dateparse import parse_date
+
+from .models import AdaTicketPurchasesT
+
 def finance_transmittal(request):
-    start = date.today() - timedelta(days=30)
-    aggregates = (AdaTicketPurchasesT.objects
-                  .filter(purdate__gte=start)
-                  .values('purdate')
-                  .annotate(total_amount=Sum('puramt'), total_qty=Sum('bkqty'))
-                  .order_by('purdate'))
-    return render(request, 'finance_transmittal.html', {'rows': aggregates, 'start': start})
+    # read ?start=YYYY-MM-DD&end=YYYY-MM-DD (inclusive)
+    start_str = request.GET.get('start')
+    end_str = request.GET.get('end')
+
+    today = date.today()
+    default_start = today - timedelta(days=30)
+
+    start = parse_date(start_str) if start_str else default_start
+    end = parse_date(end_str) if end_str else today
+
+    # ensure sane order; make end inclusive
+    if start and end and start > end:
+        start, end = end, start
+
+    qs = AdaTicketPurchasesT.objects.all()
+    if start:
+        qs = qs.filter(purdate__date__gte=start)
+    if end:
+        qs = qs.filter(purdate__date__lte=end)
+
+    rows = (
+        qs.annotate(day=TruncDate('purdate'))
+          .values('day')
+          .annotate(total_amount=Sum('puramt'), total_qty=Sum('bkqty'))
+          .order_by('day')
+    )
+
+    return render(request, 'finance_transmittal.html', {
+        'rows': rows,
+        'start': start,
+        'end': end,
+    })
 
 
 from django.shortcuts import render, redirect, get_object_or_404
