@@ -42,24 +42,12 @@ from django import forms
 from .models import AdaTicketPurchasesT
 
 class TicketForm(forms.ModelForm):
-    PAY_TYPE_CHOICES = [
-        ("Cash", "Cash"),
-        ("Check", "Check"),
-    ]
-    DEPT_ENTERED_BY_CHOICES = [
-        ("YSS", "YSS"),
-        ("SENIOR SERVICES", "Senior Services"),
-    ]
-
-    paytype = forms.ChoiceField(choices=PAY_TYPE_CHOICES, required=True)
-    deptenter = forms.ChoiceField(choices=DEPT_ENTERED_BY_CHOICES, required=True)
-    Notes = forms.CharField(widget=forms.Textarea(attrs={'rows':3}), required=False)
-
     class Meta:
         model = AdaTicketPurchasesT
         fields = [
             'purdate', 'bkqty', 'puramt', 'paytype', 'chknum',
-            'deptenter', 'Notes',
+            'deptenter',  # who entered (optional, if you use it)
+            # we’ll set fname/lname in the view, but you *can* include them in the form if you want them editable
         ]
         widgets = {
             'purdate': forms.DateTimeInput(attrs={'type': 'datetime-local'}),

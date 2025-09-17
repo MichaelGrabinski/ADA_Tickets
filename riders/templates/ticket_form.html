@@ -24,13 +24,15 @@
     <input type="hidden" id="id_puramt" name="puramt" value="28.00">
   </div>
 
-  <!-- Pay Type (only Cash or Check) -->
+  <!-- Pay Type (adjust options to your schema if needed) -->
   <div class="col-md-2">
     <label class="form-label" for="id_paytype">Pay Type</label>
     <select class="form-select" id="id_paytype" name="paytype" required>
       <option value="" selected disabled>Choose…</option>
       <option value="Cash">Cash</option>
       <option value="Check">Check</option>
+      <option value="Card">Card</option>
+      <option value="Other">Other</option>
     </select>
   </div>
 
@@ -40,21 +42,12 @@
     <input type="text" class="form-control" id="id_chknum" name="chknum" placeholder="(if applicable)">
   </div>
 
-  <!-- Dept Entered By (dropdown) -->
+  <!-- Dept Entered By -->
   <div class="col-md-4">
     <label class="form-label" for="id_deptenter">Dept Entered By</label>
-    <select class="form-select" id="id_deptenter" name="deptenter" required>
-      <option value="" selected disabled>Choose…</option>
-      <option value="YSS">YSS</option>
-      <option value="SENIOR SERVICES">Senior Services</option>
-    </select>
+    <input type="text" class="form-control" id="id_deptenter" name="deptenter">
   </div>
 
-  <!-- Notes Box -->
-  <div class="col-12">
-    <label class="form-label" for="id_Notes">Notes</label>
-    <textarea class="form-control" id="id_Notes" name="Notes" rows="3"></textarea>
-  </div>
   <div class="col-12 d-flex gap-2">
     <button class="btn btn-primary" type="submit">Save Ticket</button>
     <a class="btn btn-secondary" href="{% url 'rider_detail' rider.pk %}">Cancel</a>
