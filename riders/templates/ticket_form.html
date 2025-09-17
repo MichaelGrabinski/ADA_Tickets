@@ -1,42 +1,99 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>New Ticket for {{ rider.lname }}, {{ rider.fname }}</h2>
+
 <form method="post" class="row g-3">
   {% csrf_token %}
 
+  <!-- Purchase Date/Time -->
   <div class="col-md-4">
-    <label class="form-label">Purchase Date/Time</label>
-    {{ form.purdate }}
+    <label class="form-label" for="id_purdate">Purchase Date/Time</label>
+    <input type="datetime-local" class="form-control" id="id_purdate" name="purdate">
   </div>
 
+  <!-- Book Qty -->
   <div class="col-md-2">
-    <label class="form-label">Book Qty</label>
-    {{ form.bkqty }}
+    <label class="form-label" for="id_bkqty">Book Qty</label>
+    <input type="number" class="form-control" id="id_bkqty" name="bkqty" value="1" min="0" step="1" required>
   </div>
 
+  <!-- Amount (read-only display + hidden value kept in sync) -->
   <div class="col-md-2">
-    <label class="form-label">Amount</label>
-    {{ form.puramt }}
+    <label class="form-label" for="id_puramt_display">Amount</label>
+    <input type="text" class="form-control" id="id_puramt_display" value="$28.00" readonly>
+    <input type="hidden" id="id_puramt" name="puramt" value="28.00">
   </div>
 
+  <!-- Pay Type (only Cash or Check) -->
   <div class="col-md-2">
-    <label class="form-label">Pay Type</label>
-    {{ form.paytype }}
+    <label class="form-label" for="id_paytype">Pay Type</label>
+    <select class="form-select" id="id_paytype" name="paytype" required>
+      <option value="" selected disabled>Choose…</option>
+      <option value="Cash">Cash</option>
+      <option value="Check">Check</option>
+    </select>
   </div>
 
+  <!-- Check # -->
   <div class="col-md-2">
-    <label class="form-label">Check #</label>
-    {{ form.chknum }}
+    <label class="form-label" for="id_chknum">Check #</label>
+    <input type="text" class="form-control" id="id_chknum" name="chknum" placeholder="(if applicable)">
   </div>
 
+  <!-- Dept Entered By (dropdown) -->
   <div class="col-md-4">
-    <label class="form-label">Dept Entered By</label>
-    {{ form.deptenter }}
+    <label class="form-label" for="id_deptenter">Dept Entered By</label>
+    <select class="form-select" id="id_deptenter" name="deptenter" required>
+      <option value="" selected disabled>Choose…</option>
+      <option value="YSS">YSS</option>
+      <option value="SENIOR SERVICES">Senior Services</option>
+    </select>
   </div>
 
+  <!-- Notes Box -->
+  <div class="col-12">
+    <label class="form-label" for="id_Notes">Notes</label>
+    <textarea class="form-control" id="id_Notes" name="Notes" rows="3"></textarea>
+  </div>
   <div class="col-12 d-flex gap-2">
     <button class="btn btn-primary" type="submit">Save Ticket</button>
-    <a class="btn btn-secondary" href="{% url 'rider_detail' rider.NEW_ID %}">Cancel</a>
+    <a class="btn btn-secondary" href="{% url 'rider_detail' rider.pk %}">Cancel</a>
   </div>
 </form>
+
+<!-- Live pricing: $28 × qty; also prefills date-time to "now" if empty -->
+<script>
+(function () {
+  const UNIT_PRICE = 28.00;
+
+  const qtyEl      = document.getElementById('id_bkqty');
+  const dispEl     = document.getElementById('id_puramt_display');
+  const hiddenEl   = document.getElementById('id_puramt');
+  const purdateEl  = document.getElementById('id_purdate');
+
+  function updateAmount() {
+    const qty = parseInt(qtyEl.value, 10) || 0;
+    const total = qty * UNIT_PRICE;
+    if (dispEl)  dispEl.value = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(total);
+    if (hiddenEl) hiddenEl.value = total.toFixed(2);
+  }
+
+  function setNowIfEmpty() {
+    if (purdateEl && !purdateEl.value) {
+      const now = new Date();
+      now.setSeconds(0, 0);
+      const pad = n => String(n).padStart(2, '0');
+      const local = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      purdateEl.value = local;
+    }
+  }
+
+  // init + listeners
+  setNowIfEmpty();
+  updateAmount();
+  qtyEl.addEventListener('input', updateAmount);
+  qtyEl.addEventListener('change', updateAmount);
+})();
+</script>
 {% endblock %}
+

@@ -1,7 +1,11 @@
+from django.contrib import admin
+from django.urls import path, include
+from riders import views  # Assuming your views are in the same directory
+
 urlpatterns = [
        path('ADA/', include([
            path('admin/', admin.site.urls),
-           path('oidc/', include('mozilla_django_oidc.urls')),
+
            path('', views.home, name='home'),
            path('riders/search/', views.search_riders, name='search_riders'),
            path('riders/<int:pk>/', views.rider_detail, name='rider_detail'),

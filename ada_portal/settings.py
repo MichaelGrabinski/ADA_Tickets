@@ -5,11 +5,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-secret-change-me')
 DEBUG = os.environ.get('DEBUG', '1') == '1'
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,apps.easthartfordct.gov').split(',')
 INSTALLED_APPS = [
     'django.contrib.admin','django.contrib.auth','django.contrib.contenttypes',
     'django.contrib.sessions','django.contrib.messages',
-    'riders','mozilla_django_oidc',
+    'mozilla_django_oidc',
  'django.contrib.staticfiles',
  'riders.apps.RidersConfig',
 ]
@@ -52,7 +52,7 @@ DATABASES = {'default':{
     'NAME':os.environ.get('DB_NAME','ADA_Tickets'),
     'USER':os.environ.get('DB_USER','Michael'),
     'PASSWORD':os.environ.get('DB_PASSWORD','D3lt@kil0'),
-    'HOST':os.environ.get('DB_HOST','localhost'),
+    'HOST':os.environ.get('DB_HOST','TOEHIT-APPS-LT'),
     'PORT':os.environ.get('DB_PORT','1433'),
     'OPTIONS': {
     'driver': 'ODBC Driver 18 for SQL Server',

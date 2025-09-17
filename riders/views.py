@@ -6,7 +6,6 @@ from datetime import date, timedelta
 from .models import AdaRiderQ, AdaTicketPurchasesT  # use your existing tables
 from .forms import RiderSearchForm  # keep using the simple search form
 
-@login_Required
 def home(request):
     form = RiderSearchForm(initial={'by': 'name'})
     return render(request, 'home.html', {'form': form})
@@ -133,23 +132,53 @@ def ticket_create(request, pk):
             t.lname = rider.lname
 
             # Reasonable defaults (optional)
+
+# views.py
+from decimal import Decimal
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
+from .models import AdaRiderQ, AdaTicketPurchasesT
+from .forms import TicketForm
+
+# views.py
+from decimal import Decimal
+from django.db import transaction
+from django.db.models import Max
+from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
+from .models import AdaRiderQ, AdaTicketPurchasesT
+from .forms import TicketForm
+
+UNIT_PRICE = Decimal('28.00')
+
+def ticket_create(request, pk):
+    rider = get_object_or_404(AdaRiderQ, pk=pk)
+
+    if request.method == 'POST':
+        form = TicketForm(request.POST)
+        if form.is_valid():
+            t = form.save(commit=False)
+
+            # link to rider
+            t.fname = rider.fname
+            t.lname = rider.lname
             if not t.purdate:
                 t.purdate = timezone.now()
 
-            # Save the row into ADA_Ticket_Purchases_t
-            t.save()
+            # compute amount from qty
+            qty = t.bkqty or 0
+            t.puramt = (Decimal(qty) * UNIT_PRICE).quantize(Decimal('0.01'))
+
+            # ---- HOTFIX: generate TransID ourselves
+            with transaction.atomic():
+                next_id = (AdaTicketPurchasesT.objects.aggregate(m=Max('TransID'))['m'] or 0) + 1
+                t.TransID = next_id
+                t.save()
 
             return redirect('rider_detail', pk=rider.pk)
     else:
-        # sensible defaults for the form
-        initial = {
-            'purdate': timezone.now().replace(microsecond=0),
-            'bkqty': 1,
-            # 'deptenter': request.user.username if you’re using auth
-        }
+        initial = {'purdate': timezone.now().replace(microsecond=0), 'bkqty': 1}
         form = TicketForm(initial=initial)
 
-    return render(request, 'ticket_form.html', {
-        'form': form,
-        'rider': rider,
-    })
+    return render(request, 'ticket_form.html', {'form': form, 'rider': rider})
+
