@@ -1,0 +1,114 @@
+{% extends 'permits/base.html' %}
+{% block content %}
+<div class="search-section mb-4">
+    <h2 class="mb-3">Search for Permit History</h2>
+    <form id="address-form" method="get" action="/permits/history/">
+        <div class="mb-3 position-relative">
+            <label for="street-number-input" class="form-label">Street Number or Address</label>
+            <input type="text" class="form-control form-control-lg" id="street-number-input" placeholder="Start typing a street number or address..." autocomplete="off">
+            <div id="address-dropdown" class="list-group position-absolute w-100" style="z-index: 1000; background: #fff; border: 2px solid #007bff;"></div>
+            <input type="hidden" name="q" id="address-key-input">
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg">Show Permit History</button>
+    </form>
+</div>
+<div id="recent-searches" class="mb-4">
+    <h5>Recent Searches</h5>
+    <ul class="list-group" id="recent-searches-list"></ul>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Recent searches script loaded');
+    window.addEventListener('error', function(e) { console.error('JS Error:', e.message, e); });
+    const streetInput = document.getElementById('street-number-input');
+    const dropdown = document.getElementById('address-dropdown');
+    const addressKeyInput = document.getElementById('address-key-input');
+    const form = document.getElementById('address-form');
+
+    let lastDropdownDisplay = '';
+    const recentKey = 'permits_recent_searches';
+    const maxRecent = 5;
+
+    function addRecentSearch(display, key) {
+        console.log('addRecentSearch called with:', display, key);
+        let recents = JSON.parse(localStorage.getItem(recentKey) || '[]');
+        recents = recents.filter(r => r.key !== key);
+        recents.unshift({display, key});
+        if (recents.length > maxRecent) recents = recents.slice(0, maxRecent);
+        localStorage.setItem(recentKey, JSON.stringify(recents));
+        renderRecentSearches();
+        console.log('Updated recents:', recents);
+    }
+    function renderRecentSearches() {
+        const recents = JSON.parse(localStorage.getItem(recentKey) || '[]');
+        console.log('Rendering recents:', recents);
+        const ul = document.getElementById('recent-searches-list');
+        ul.innerHTML = '';
+        recents.forEach(r => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between align-items-center';
+            const a = document.createElement('a');
+            a.href = `/permits/history/?q=${encodeURIComponent(r.key)}`;
+            a.textContent = r.display;
+            li.appendChild(a);
+            ul.appendChild(li);
+        });
+        console.log('Recent searches rendered.');
+    }
+    renderRecentSearches();
+
+    streetInput.addEventListener('input', function() {
+        const val = this.value;
+        if (val.length < 1) { dropdown.innerHTML = ''; return; }
+        fetch(`/permits/address_picker/?term=${encodeURIComponent(val)}`)
+            .then(r => r.json())
+            .then(data => {
+                dropdown.innerHTML = '';
+                console.log('Dropdown data:', data);
+                data.forEach(item => {
+                    const el = document.createElement('button');
+                    el.type = 'button';
+                    el.className = 'list-group-item list-group-item-action';
+                    el.textContent = item.display;
+                    el.onclick = () => {
+                        addressKeyInput.value = item.key;
+                        streetInput.value = item.display;
+                        lastDropdownDisplay = item.display;
+                        dropdown.innerHTML = '';
+                        console.log('Dropdown button clicked:', item.display, item.key);
+                    };
+                    dropdown.appendChild(el);
+                });
+            });
+    });
+    document.addEventListener('click', function(e) {
+        if (!streetInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.innerHTML = '';
+        }
+    });
+    // Add to recent on select
+    dropdown.addEventListener('click', function(e) {
+        if (e.target.tagName === 'BUTTON') {
+            lastDropdownDisplay = e.target.textContent;
+            addRecentSearch(lastDropdownDisplay, addressKeyInput.value);
+        }
+    });
+    // Add to recent on form submit (if valid)
+    form.addEventListener('submit', function(e) {
+        if (!addressKeyInput.value) {
+            e.preventDefault();
+            alert('Please select an address from the dropdown.');
+            console.log('Form submit: No addressKeyInput.value, not adding to recents.');
+        } else {
+            // Use lastDropdownDisplay if available, else fallback to input value
+            let display = lastDropdownDisplay || streetInput.value;
+            console.log('Form submit: display=', display, 'key=', addressKeyInput.value);
+            addRecentSearch(display, addressKeyInput.value);
+            lastDropdownDisplay = '';
+        }
+    });
+});
+</script>
+{% endblock %}

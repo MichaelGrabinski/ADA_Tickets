@@ -23,5 +23,5 @@ class GlobalLoginRequiredMiddleware:
         if request.user.is_authenticated or any(p.match(path) for p in self._compiled):
             return self.get_response(request)
 
-        login_url = reverse('django_auth_adfs:login')
+        login_url = settings.LOGIN_URL
         return redirect(f"{login_url}?next=/")

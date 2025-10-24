@@ -1,8 +1,9 @@
 from django.contrib import admin
 from django.urls import path, include
-from riders import views  # Assuming your views are in the same directory
+from permits import views as permit_views
 
 urlpatterns = [
+
     # Azure AD / ADFS auth endpoints under /ADA/
     path('ADA/oauth2/', include('django_auth_adfs.urls')),
     path('ADA/', include([
@@ -20,4 +21,6 @@ urlpatterns = [
            path('reports/finance-detail/', views.finance_detail_report, name='finance_detail_report'),
        ])),
    ]
+
+
 
