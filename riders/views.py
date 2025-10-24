@@ -1,9 +1,10 @@
 # riders/views.py
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import Q, Sum
+from django.http import HttpResponse
+from django.db.models import Q, Sum, Count
 from datetime import date, timedelta
 
-from .models import AdaRiderQ, AdaTicketPurchasesT  # use your existing tables
+from .models import AdaRiderQ, AdaTicketPurchasesT, TicketAudit  # use your existing tables
 from .forms import RiderSearchForm  # keep using the simple search form
 
 def home(request):
@@ -73,10 +74,12 @@ def rider_inactive(request, pk):
 
 from datetime import date, datetime, timedelta
 from django.db.models import Sum
+from django.db.models.functions import Coalesce
+from django.db.models import Value
 from django.db.models.functions import TruncDate
 from django.utils.dateparse import parse_date
 
-from .models import AdaTicketPurchasesT
+from .models import AdaTicketPurchasesT, TicketAudit
 
 def finance_transmittal(request):
     # read ?start=YYYY-MM-DD&end=YYYY-MM-DD (inclusive)
@@ -115,7 +118,7 @@ def finance_transmittal(request):
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
-from .models import AdaRiderQ, AdaTicketPurchasesT
+from .models import AdaRiderQ, AdaTicketPurchasesT, TicketAudit
 from .forms import TicketForm
 
 def ticket_create(request, pk):
@@ -137,7 +140,7 @@ def ticket_create(request, pk):
 from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
-from .models import AdaRiderQ, AdaTicketPurchasesT
+from .models import AdaRiderQ, AdaTicketPurchasesT, TicketAudit
 from .forms import TicketForm
 
 # views.py
@@ -175,10 +178,129 @@ def ticket_create(request, pk):
                 t.TransID = next_id
                 t.save()
 
-            return redirect('rider_detail', pk=rider.pk)
+                # Create audit/receipt row
+                TicketAudit.objects.create(
+                    trans_id=t.TransID,
+                    rider_new_id=rider.NEW_ID,
+                    fname=t.fname,
+                    lname=t.lname,
+                    created_by=(request.user.get_username() if request.user.is_authenticated else 'anonymous'),
+                    deptenter=t.deptenter,
+                    paytype=t.paytype,
+                    chknum=t.chknum,
+                    amount=t.puramt or 0,
+                    qty=t.bkqty or 0,
+                    notes=getattr(t, 'Notes', None),
+                )
+            return redirect('receipt_view', trans_id=t.TransID)
     else:
         initial = {'purdate': timezone.now().replace(microsecond=0), 'bkqty': 1}
         form = TicketForm(initial=initial)
 
     return render(request, 'ticket_form.html', {'form': form, 'rider': rider})
+
+
+def receipt_view(request, trans_id: int):
+    # Load from primary table and audit
+    purchase = get_object_or_404(AdaTicketPurchasesT, TransID=trans_id)
+    audit = TicketAudit.objects.filter(trans_id=trans_id).order_by('-created_at').first()
+    rider = AdaRiderQ.objects.filter(fname=purchase.fname, lname=purchase.lname).first()
+    context = {'purchase': purchase, 'audit': audit, 'rider': rider}
+
+    # Support PDF download
+    if request.GET.get('format') == 'pdf':
+        try:
+            from django.template.loader import get_template
+            from xhtml2pdf import pisa
+            template = get_template('receipt_pdf.html')
+            html = template.render(context)
+            response = HttpResponse(content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="receipt-{trans_id}.pdf"'
+            pisa.CreatePDF(src=html, dest=response)
+            return response
+        except Exception as e:
+            return HttpResponse(f"PDF generation failed: {e}", status=500)
+
+    return render(request, 'receipt.html', context)
+
+
+def finance_detail_report(request):
+    # Params: ?start=YYYY-MM-DD&end=YYYY-MM-DD&user=username(optional)
+    start_str = request.GET.get('start')
+    end_str = request.GET.get('end')
+
+    # Default to past 30 days if no dates provided
+    start = parse_date(start_str) if start_str else None
+    end = parse_date(end_str) if end_str else None
+    if not start and not end:
+        today = date.today()
+        start = today - timedelta(days=30)
+        end = today
+    if start and end and start > end:
+        start, end = end, start
+
+    # Filter audits by purchase date range by joining via TransID to purchases
+    qs = TicketAudit.objects.all()
+    purchases_for_range = AdaTicketPurchasesT.objects.all()
+    if start:
+        purchases_for_range = purchases_for_range.filter(purdate__date__gte=start)
+    if end:
+        purchases_for_range = purchases_for_range.filter(purdate__date__lte=end)
+    # Restrict audits to those whose TransID appears in purchases within range
+    purchase_ids_qs = purchases_for_range.exclude(TransID__isnull=True).values_list('TransID', flat=True)
+    qs = qs.filter(trans_id__in=purchase_ids_qs)
+
+    # Build per-entry audit list annotated with purchase date and ADA ID (for display)
+    purchase_dates = dict(
+        purchases_for_range.exclude(TransID__isnull=True)
+            .values_list('TransID', 'purdate')
+    )
+    # Map rider_new_id -> ADA ID for quick lookup
+    rider_ids = list(qs.exclude(rider_new_id=None).values_list('rider_new_id', flat=True).distinct())
+    adaid_map = {}
+    if rider_ids:
+        for rid, adaid in AdaRiderQ.objects.filter(NEW_ID__in=rider_ids).values_list('NEW_ID', 'adaid'):
+            adaid_map[rid] = adaid
+    audit_entries = [
+        {
+            'trans_id': a.trans_id,
+            'created_by': a.created_by,
+            'deptenter': a.deptenter,
+            'qty': a.qty,
+            'amount': a.amount,
+            'created_at': a.created_at,
+            'purchase_date': purchase_dates.get(a.trans_id),
+            'adaid': adaid_map.get(a.rider_new_id) or (AdaRiderQ.objects.filter(fname=a.fname, lname=a.lname).values_list('adaid', flat=True).first()),
+        }
+        for a in qs.order_by('-created_at')
+    ]
+
+    # Build per-purchase entry rows with ADA ID and User (created_by)
+    audits_by_trans = {a.trans_id: a for a in qs}
+    entry_rows = []
+    for p in purchases_for_range.order_by('-purdate'):
+        a = audits_by_trans.get(p.TransID)
+        created_by = a.created_by if a else (p.deptenter or 'legacy-import')
+        # Prefer ADA ID via audit->rider_new_id, else fallback by name
+        ada_id = (adaid_map.get(a.rider_new_id) if a and a.rider_new_id else None)
+        if not ada_id:
+            ada_id = AdaRiderQ.objects.filter(fname=p.fname, lname=p.lname).values_list('adaid', flat=True).first()
+        entry_rows.append({
+            'trans_id': p.TransID,
+            'adaid': ada_id,
+            'rider_name': f"{(p.lname or '').strip()}, {(p.fname or '').strip()}",
+            'user': created_by,
+            'dept': p.deptenter,
+            'qty': p.bkqty or 0,
+            'amount': p.puramt or 0,
+            'purchase_date': p.purdate,
+        })
+
+    # Diagnostics removed; we only need entry rows now
+
+    return render(request, 'finance_detail.html', {
+        'entry_rows': entry_rows,
+        'start': start,
+        'end': end,
+    })
 

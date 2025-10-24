@@ -58,6 +58,29 @@ class AdaTicketPurchasesT(models.Model):
     class Meta:
         db_table = 'ADA_Ticket_Purchases_t'
         managed = False
+
+# Managed table to track who entered tickets and support receipts/reports
+class TicketAudit(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    trans_id = models.IntegerField(db_index=True)
+    rider_new_id = models.IntegerField(null=True, blank=True)
+    fname = models.CharField(max_length=255, blank=True, null=True)
+    lname = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.CharField(max_length=255)  # Django username or email
+    deptenter = models.CharField(max_length=255, blank=True, null=True)
+    paytype = models.CharField(max_length=255, blank=True, null=True)
+    chknum = models.CharField(max_length=255, blank=True, null=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    qty = models.IntegerField(default=0)
+    notes = models.TextField(blank=True, null=True)
+
+    class Meta:
+        db_table = 'TicketAudit'
+        managed = True
+
+    def __str__(self):
+        return f"Receipt {self.trans_id} by {self.created_by} on {self.created_at:%Y-%m-%d}"
         indexes = [
             models.Index(fields=['purdate']),
         ]

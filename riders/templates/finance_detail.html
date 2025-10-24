@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Finance Detail Report</h2>
+
+<form method="get" class="row g-2 mb-3">
+  <div class="col-auto">
+    <label class="form-label">Start</label>
+    <input class="form-control" type="date" name="start" value="{{ start|date:'Y-m-d' }}">
+  </div>
+  <div class="col-auto">
+    <label class="form-label">End</label>
+    <input class="form-control" type="date" name="end" value="{{ end|date:'Y-m-d' }}">
+  </div>
+  <div class="col-auto align-self-end"><button class="btn btn-primary" type="submit">Run</button></div>
+  <div class="col-auto align-self-end"><a class="btn btn-secondary" href="?">Reset</a></div>
+  <div class="col-12"><small>Defaulting to the past 30 days. Adjust dates to change the range.</small></div>
+  <hr>
+</form>
+
+<h4>By Entry</h4>
+<table class="table table-sm table-bordered">
+  <thead>
+    <tr>
+      <th>TransID</th>
+      <th>ADA ID</th>
+      <th>Rider</th>
+      <th class="text-end">Qty</th>
+      <th class="text-end">Amount</th>
+      <th>Purchase Date</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for r in entry_rows %}
+    <tr>
+      <td>{{ r.trans_id }}</td>
+      <td>{{ r.adaid|default:'—' }}</td>
+      <td>{{ r.rider_name }}</td>
+      <td class="text-end">{{ r.qty }}</td>
+      <td class="text-end">${{ r.amount }}</td>
+      <td>{{ r.purchase_date|date:'Y-m-d' }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6">No entries.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

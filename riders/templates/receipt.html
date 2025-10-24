@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-print-none mb-3 d-flex gap-2">
+  <a class="btn btn-secondary" href="{% url 'rider_detail' rider.NEW_ID %}">Back to Rider</a>
+  <button class="btn btn-primary" onclick="window.print()">Print</button>
+  <a class="btn btn-success" href="?format=pdf">Download PDF</a>
+</div>
+
+<div class="receipt-container">
+  <div class="receipt-header">
+    <div class="brand">
+      <div class="brand-title">Town of East Hartford</div>
+      <div class="brand-sub">ADA Ticket Purchase Receipt</div>
+    </div>
+    <div class="receipt-meta">
+      <div><span class="label">Receipt #</span><span class="value">{{ purchase.TransID }}</span></div>
+      <div><span class="label">Date</span><span class="value">{{ purchase.purdate }}</span></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Rider</div>
+    <div class="kv"><span class="k">Name</span><span class="v">{{ purchase.lname }}, {{ purchase.fname }}</span></div>
+    {% if rider and rider.aptstnum or rider.aptstname %}
+    <div class="kv"><span class="k">Address</span><span class="v">{{ rider.aptstnum }} {{ rider.aptstname }} {% if rider.aptunit %}#{{ rider.aptunit }}{% endif %} {{ rider.zip }}</span></div>
+    {% endif %}
+  </div>
+
+  <div class="section">
+    <div class="section-title">Payment</div>
+    <div class="kv"><span class="k">Quantity</span><span class="v">{{ purchase.bkqty }}</span></div>
+    <div class="kv"><span class="k">Amount</span><span class="v">${{ purchase.puramt }}</span></div>
+    <div class="kv"><span class="k">Pay Type</span><span class="v">{{ purchase.paytype }}</span></div>
+    <div class="kv"><span class="k">Check #</span><span class="v">{{ purchase.chknum|default:'—' }}</span></div>
+    {% if purchase.Notes %}
+    <div class="kv"><span class="k">Notes</span><span class="v">{{ purchase.Notes }}</span></div>
+    {% endif %}
+  </div>
+
+  {% if audit %}
+  <div class="section">
+    <div class="section-title">Entry</div>
+    <div class="kv"><span class="k">Entered By</span><span class="v">{{ audit.created_by }}</span></div>
+    <div class="kv"><span class="k">Entered At</span><span class="v">{{ audit.created_at }}</span></div>
+  </div>
+  {% endif %}
+
+  <div class="footer">Thank you.</div>
+</div>
+
+<style>
+  .receipt-container { max-width: 720px; margin: 0 auto; background: #fff; border: 1px solid #e5e5e5; padding: 24px 28px; }
+  .receipt-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f0f0f0; padding-bottom: 12px; margin-bottom: 16px; }
+  .brand-title { font-size: 20px; font-weight: 700; }
+  .brand-sub { color: #666; }
+  .receipt-meta .label { display: inline-block; min-width: 90px; color: #666; }
+  .receipt-meta .value { font-weight: 600; }
+  .section { margin-top: 12px; }
+  .section-title { font-weight: 600; margin-bottom: 6px; color: #333; }
+  .kv { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #eee; }
+  .kv .k { color: #666; }
+  .kv .v { font-weight: 600; }
+  .footer { margin-top: 24px; text-align: center; color: #666; }
+  @media print {
+    .navbar, .d-print-none { display: none !important; }
+    body { padding: 0; }
+    .receipt-container { border: none; padding: 0; }
+  }
+</style>
+{% endblock %}
