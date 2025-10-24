@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
-from permits import views as permit_views
+from riders import views
+from permits import urls as permits_urls
 
 urlpatterns = [
 
@@ -19,6 +20,7 @@ urlpatterns = [
            path('riders/<int:pk>/tickets/new/', views.ticket_create, name='ticket_create'),
            path('receipts/<int:trans_id>/', views.receipt_view, name='receipt_view'),
            path('reports/finance-detail/', views.finance_detail_report, name='finance_detail_report'),
+           path('permits/', include(('permits.urls', 'permits'), namespace='permits')),
        ])),
    ]
 
