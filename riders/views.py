@@ -163,18 +163,29 @@ def finance_transmittal(request):
             # Prefer the riders static seal image, fallback to permits banner
             logo_uri = None
             logo_data_uri = None
+            logo_path = None
             riders_logo = settings.BASE_DIR / 'riders' / 'static' / 'tc-eh-town-seal.jpeg'
             permits_logo = settings.BASE_DIR / 'permits' / 'static' / 'town_banner.png'
             if riders_logo.exists():
                 logo_uri = f"file:///{riders_logo.as_posix()}"
+                logo_path = str(riders_logo)
                 try:
-                    import base64
-                    with open(riders_logo, 'rb') as f:
-                        logo_data_uri = 'data:image/jpeg;base64,' + base64.b64encode(f.read()).decode('utf-8')
+                    import base64, io
+                    try:
+                        from PIL import Image  # prefer converting to PNG for better compatibility
+                        img = Image.open(riders_logo)
+                        buf = io.BytesIO()
+                        img.save(buf, format='PNG')
+                        logo_data_uri = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('utf-8')
+                    except Exception:
+                        # Fallback to raw JPEG data URI if Pillow not available
+                        with open(riders_logo, 'rb') as f:
+                            logo_data_uri = 'data:image/jpeg;base64,' + base64.b64encode(f.read()).decode('utf-8')
                 except Exception:
                     logo_data_uri = None
             elif permits_logo.exists():
                 logo_uri = f"file:///{permits_logo.as_posix()}"
+                logo_path = str(permits_logo)
 
             template = get_template('finance_transmittal_pdf.html')
             html = template.render({
@@ -185,6 +196,7 @@ def finance_transmittal(request):
                 'grand_total_qty': grand_total_qty,
                 'logo_uri': logo_uri,
                 'logo_data_uri': logo_data_uri,
+                'logo_path': logo_path,
             })
             response = HttpResponse(content_type='application/pdf')
             response['Content-Disposition'] = 'attachment; filename="finance-transmittal.pdf"'
