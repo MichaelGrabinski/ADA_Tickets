@@ -78,6 +78,7 @@ from django.db.models.functions import Coalesce
 from django.db.models import Value
 from django.db.models.functions import TruncDate
 from django.utils.dateparse import parse_date
+from django.conf import settings
 
 from .models import AdaTicketPurchasesT, TicketAudit
 
@@ -102,6 +103,7 @@ def finance_transmittal(request):
     if end:
         qs = qs.filter(purdate__date__lte=end)
 
+    # Build per-day rollups (kept for totals if needed)
     rows = (
         qs.annotate(day=TruncDate('purdate'))
           .values('day')
@@ -109,10 +111,85 @@ def finance_transmittal(request):
           .order_by('day')
     )
 
+    # Build per-purchase entries for the transmittal grid
+    purchases = list(qs.order_by('purdate').values('TransID', 'purdate', 'bkqty', 'puramt', 'paytype', 'chknum', 'fname', 'lname'))
+
+    # Map audits by trans_id to help get ADA ID via rider_new_id
+    trans_ids = [p['TransID'] for p in purchases if p['TransID'] is not None]
+    audit_by_trans = {}
+    if trans_ids:
+        audit_qs = TicketAudit.objects.filter(trans_id__in=trans_ids).order_by('-created_at')
+        # last write wins; order ensures latest audit used
+        for a in audit_qs:
+            if a.trans_id not in audit_by_trans:
+                audit_by_trans[a.trans_id] = a
+
+    # Build rider_new_id -> adaid map
+    rider_ids = [a.rider_new_id for a in audit_by_trans.values() if a.rider_new_id]
+    adaid_map = {}
+    if rider_ids:
+        for rid, adaid in AdaRiderQ.objects.filter(NEW_ID__in=rider_ids).values_list('NEW_ID', 'adaid'):
+            adaid_map[rid] = adaid
+
+    entry_rows = []
+    for p in purchases:
+        a = audit_by_trans.get(p['TransID'])
+        ada_id = None
+        if a and a.rider_new_id:
+            ada_id = adaid_map.get(a.rider_new_id)
+        if not ada_id:
+            ada_id = AdaRiderQ.objects.filter(fname=p['fname'], lname=p['lname']).values_list('adaid', flat=True).first()
+        entry_rows.append({
+            'paytype': p['paytype'],
+            'purchase_date': p['purdate'],
+            'adaid': ada_id,
+            'name': f"{(p['lname'] or '').strip()}, {(p['fname'] or '').strip()}",
+            'qty': p['bkqty'] or 0,
+            'amount': p['puramt'] or 0,
+            'chknum': p['chknum'] or '',
+        })
+
+    # Grand totals across the filtered queryset
+    grand = qs.aggregate(grand_total_amount=Sum('puramt'), grand_total_qty=Sum('bkqty'))
+    grand_total_amount = grand.get('grand_total_amount') or 0
+    grand_total_qty = grand.get('grand_total_qty') or 0
+
+    # Optional: PDF export of the current view
+    if request.GET.get('format') == 'pdf':
+        try:
+            from django.template.loader import get_template
+            from xhtml2pdf import pisa
+
+            # Try to use the permits banner if available
+            logo_file = settings.BASE_DIR / 'permits' / 'static' / 'town_banner.png'
+            logo_uri = None
+            if logo_file.exists():
+                # Convert filesystem path to file URI compatible with xhtml2pdf
+                logo_uri = f"file:///{logo_file.as_posix()}"
+
+            template = get_template('finance_transmittal_pdf.html')
+            html = template.render({
+                'entries': entry_rows,
+                'start': start,
+                'end': end,
+                'grand_total_amount': grand_total_amount,
+                'grand_total_qty': grand_total_qty,
+                'logo_uri': logo_uri,
+            })
+            response = HttpResponse(content_type='application/pdf')
+            response['Content-Disposition'] = 'attachment; filename="finance-transmittal.pdf"'
+            pisa.CreatePDF(src=html, dest=response)
+            return response
+        except Exception as e:
+            return HttpResponse(f"PDF generation failed: {e}", status=500)
+
     return render(request, 'finance_transmittal.html', {
-        'rows': rows,
+    'rows': rows,
+    'entries': entry_rows,
         'start': start,
         'end': end,
+        'grand_total_amount': grand_total_amount,
+        'grand_total_qty': grand_total_qty,
     })
 
 

@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 12px; }
+      .header { display: flex; align-items: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 12px; }
+      .header img { height: 48px; margin-right: 12px; }
+      .title { font-size: 18px; font-weight: 700; line-height: 1.3; }
+      .subtitle { font-size: 14px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+      th, td { border: 1px solid #ddd; padding: 6px 8px; }
+      th { background: #f2f2f2; text-align: left; }
+      .totals { margin-top: 10px; font-weight: 700; }
+      .sign { margin-top: 24px; }
+      .line { border-bottom: 1px solid #333; height: 20px; width: 260px; display: inline-block; vertical-align: bottom; }
+      .label { display: inline-block; width: 180px; }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      {% if logo_uri %}<img src="{{ logo_uri }}" alt="Town Logo">{% endif %}
+      <div>
+        <div class="title">Town of East Hartford</div>
+        <div class="subtitle">ADA Transportation Ticket Book</div>
+        <div class="subtitle">Transmittal Report</div>
+      </div>
+    </div>
+
+    <div>
+      <strong>From:</strong> {{ start|date:'Y-m-d' }}
+      &nbsp;&nbsp; <strong>To:</strong> {{ end|date:'Y-m-d' }}
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Pay Type</th>
+          <th>Purchase Date</th>
+          <th>ADA ID</th>
+          <th>Name</th>
+          <th>Qty</th>
+          <th>Amount</th>
+          <th>Check #</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+          <tr>
+            <td>{{ e.paytype }}</td>
+            <td>{{ e.purchase_date|date:'Y-m-d' }}</td>
+            <td>{{ e.adaid }}</td>
+            <td>{{ e.name }}</td>
+            <td>{{ e.qty }}</td>
+            <td>${{ e.amount }}</td>
+            <td>{{ e.chknum }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">No data for this range.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="totals">
+      Grand Total Qty: {{ grand_total_qty }}
+      &nbsp;&nbsp; Grand Total Amount: ${{ grand_total_amount }}
+    </div>
+
+    <div class="sign">
+      <div>
+        <span class="label">Signature of preparer:</span> <span class="line"></span>
+      </div>
+      <div style="margin-top: 10px;">
+        <span class="label">Date:</span> <span class="line" style="width: 180px;"></span>
+      </div>
+    </div>
+  </body>
+</html>

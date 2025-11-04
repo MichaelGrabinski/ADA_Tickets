@@ -23,5 +23,17 @@ class GlobalLoginRequiredMiddleware:
         if request.user.is_authenticated or any(p.match(path) for p in self._compiled):
             return self.get_response(request)
 
-        login_url = settings.LOGIN_URL
-        return redirect(f"{login_url}?next=/")
+        # Resolve the LOGIN_URL name to a concrete path (e.g. '/ADA/oauth2/login/')
+        try:
+            login_path = reverse(settings.LOGIN_URL)
+        except Exception:
+            # Fallback: assume LOGIN_URL is already a usable path
+            login_path = settings.LOGIN_URL
+
+        # If we're already on the login path, don't redirect again
+        if request.path.startswith(login_path):
+            return self.get_response(request)
+
+        # Preserve the original path the user tried to access
+        next_param = request.get_full_path()
+        return redirect(f"{login_path}?next={next_param}")
