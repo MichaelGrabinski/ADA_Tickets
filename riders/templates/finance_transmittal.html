@@ -21,16 +21,16 @@
   </div>
 </form>
 
-<table class="table table-sm table-striped">
+<table class="table table-sm table-striped" style="table-layout: fixed;">
   <thead>
     <tr>
-      <th>Pay Type</th>
-      <th>Purchase Date</th>
-      <th>ADA ID</th>
-      <th>Name</th>
-      <th>Qty</th>
-      <th>Amount</th>
-      <th>Check #</th>
+      <th style="width:13%">Pay Type</th>
+      <th style="width:16%">Purchase Date</th>
+      <th style="width:12%">ADA ID</th>
+      <th style="width:29%">Name</th>
+      <th style="width:8%" class="text-end">Qty</th>
+      <th style="width:12%" class="text-end">Amount</th>
+      <th style="width:10%">Check #</th>
     </tr>
   </thead>
   <tbody>
@@ -40,8 +40,8 @@
         <td>{{ e.purchase_date }}</td>
         <td>{{ e.adaid }}</td>
         <td>{{ e.name }}</td>
-        <td>{{ e.qty }}</td>
-        <td>${{ e.amount }}</td>
+        <td class="text-end">{{ e.qty }}</td>
+        <td class="text-end">${{ e.amount }}</td>
         <td>{{ e.chknum }}</td>
       </tr>
     {% empty %}

@@ -160,12 +160,14 @@ def finance_transmittal(request):
             from django.template.loader import get_template
             from xhtml2pdf import pisa
 
-            # Try to use the permits banner if available
-            logo_file = settings.BASE_DIR / 'permits' / 'static' / 'town_banner.png'
+            # Prefer the riders static seal image, fallback to permits banner
             logo_uri = None
-            if logo_file.exists():
-                # Convert filesystem path to file URI compatible with xhtml2pdf
-                logo_uri = f"file:///{logo_file.as_posix()}"
+            riders_logo = settings.BASE_DIR / 'riders' / 'static' / 'tc-eh-town-seal.jpeg'
+            permits_logo = settings.BASE_DIR / 'permits' / 'static' / 'town_banner.png'
+            if riders_logo.exists():
+                logo_uri = f"file:///{riders_logo.as_posix()}"
+            elif permits_logo.exists():
+                logo_uri = f"file:///{permits_logo.as_posix()}"
 
             template = get_template('finance_transmittal_pdf.html')
             html = template.render({
