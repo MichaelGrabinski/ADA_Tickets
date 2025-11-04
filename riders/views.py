@@ -162,10 +162,17 @@ def finance_transmittal(request):
 
             # Prefer the riders static seal image, fallback to permits banner
             logo_uri = None
+            logo_data_uri = None
             riders_logo = settings.BASE_DIR / 'riders' / 'static' / 'tc-eh-town-seal.jpeg'
             permits_logo = settings.BASE_DIR / 'permits' / 'static' / 'town_banner.png'
             if riders_logo.exists():
                 logo_uri = f"file:///{riders_logo.as_posix()}"
+                try:
+                    import base64
+                    with open(riders_logo, 'rb') as f:
+                        logo_data_uri = 'data:image/jpeg;base64,' + base64.b64encode(f.read()).decode('utf-8')
+                except Exception:
+                    logo_data_uri = None
             elif permits_logo.exists():
                 logo_uri = f"file:///{permits_logo.as_posix()}"
 
@@ -177,6 +184,7 @@ def finance_transmittal(request):
                 'grand_total_amount': grand_total_amount,
                 'grand_total_qty': grand_total_qty,
                 'logo_uri': logo_uri,
+                'logo_data_uri': logo_data_uri,
             })
             response = HttpResponse(content_type='application/pdf')
             response['Content-Disposition'] = 'attachment; filename="finance-transmittal.pdf"'

@@ -20,15 +20,20 @@
       .col-amt { width: 12%; text-align: right; }
       .col-chk { width: 10%; }
       .totals { margin-top: 8px; font-weight: 700; }
-      .sign { margin-top: 18px; }
-      .line { border-bottom: 1px solid #333; height: 18px; min-width: 160px; display: inline-block; vertical-align: bottom; }
-      .label { display: inline-block; min-width: 170px; }
-      .sig-row { display: flex; gap: 18px; align-items: center; margin: 10px 0; }
+  .sign { margin-top: 18px; }
+  .label { display: inline-block; min-width: 170px; }
+  .sig-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  .sig-table td { border: none; padding: 6px 4px; }
+  .underline { font-family: DejaVu Sans, Arial, sans-serif; }
     </style>
   </head>
   <body>
     <div class="header">
-      {% if logo_uri %}<img src="{{ logo_uri }}" alt="Town Logo">{% endif %}
+      {% if logo_data_uri %}
+        <img src="{{ logo_data_uri }}" alt="Town Logo">
+      {% elif logo_uri %}
+        <img src="{{ logo_uri }}" alt="Town Logo">
+      {% endif %}
       <div>
         <div class="title">Town of East Hartford</div>
         <div class="subtitle">ADA Transportation Ticket Book</div>
@@ -76,14 +81,20 @@
     </div>
 
     <div class="sign">
-      <div class="sig-row">
-        <span class="label">Signature of Preparer:</span> <span class="line"></span>
-        <span class="label" style="margin-left: 10px;">Date:</span> <span class="line" style="min-width: 120px;"></span>
-      </div>
-      <div class="sig-row">
-        <span class="label">Received & Verified By (Signature):</span> <span class="line"></span>
-        <span class="label" style="margin-left: 10px;">Date:</span> <span class="line" style="min-width: 120px;"></span>
-      </div>
+      <table class="sig-table">
+        <tr>
+          <td class="label">Signature of Preparer:</td>
+          <td class="underline">__________________________________________</td>
+          <td class="label" style="width:80px;">Date:</td>
+          <td class="underline" style="width:160px;">_____________________</td>
+        </tr>
+        <tr>
+          <td class="label">Received & Verified (Signature):</td>
+          <td class="underline">__________________________________________</td>
+          <td class="label" style="width:80px;">Date:</td>
+          <td class="underline" style="width:160px;">_____________________</td>
+        </tr>
+      </table>
     </div>
   </body>
 </html>
