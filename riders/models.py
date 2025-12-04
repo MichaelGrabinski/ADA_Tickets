@@ -48,7 +48,7 @@ class AdaTicketPurchasesT(models.Model):
     maildate  = models.DateTimeField(blank=True, null=True)
     old_transid = models.CharField(max_length=255, blank=True, null=True)
     paytype   = models.CharField(max_length=255, blank=True, null=True)
-    puramt    = models.IntegerField(blank=True, null=True)    # int in your list
+    puramt    = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     purdate   = models.DateTimeField(blank=True, null=True)
     TransID   = models.IntegerField(blank=True, null=True)
 
@@ -78,12 +78,12 @@ class TicketAudit(models.Model):
     class Meta:
         db_table = 'TicketAudit'
         managed = True
+        indexes = [
+            models.Index(fields=['created_at']),
+        ]
 
     def __str__(self):
         return f"Receipt {self.trans_id} by {self.created_by} on {self.created_at:%Y-%m-%d}"
-        indexes = [
-            models.Index(fields=['purdate']),
-        ]
 
 
 # === Purchases (existing table: ADA_Purchases_q) – optional if you need it ===
@@ -100,7 +100,7 @@ class AdaPurchasesQ(models.Model):
     maildate  = models.DateTimeField(blank=True, null=True)
     old_transid = models.CharField(max_length=255, blank=True, null=True)
     paytype   = models.CharField(max_length=255, blank=True, null=True)
-    puramt    = models.IntegerField(blank=True, null=True)
+    puramt    = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     purdate   = models.DateTimeField(blank=True, null=True)
     TransID   = models.IntegerField(blank=True, null=True)
 
