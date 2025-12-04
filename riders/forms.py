@@ -1,10 +1,14 @@
 from django import forms
-from .models import AdaRiderQ
+from .models import AdaRiderQ, AdaTicketPurchasesT
+
+
 class RiderSearchForm(forms.Form):
-    by = forms.ChoiceField(choices=[('name','ADA Rider Name'), ('id','ADA Rider ID')], required=True)
+    by = forms.ChoiceField(choices=[('name', 'ADA Rider Name'), ('id', 'ADA Rider ID')], required=True)
     first_name = forms.CharField(required=False)
     last_name = forms.CharField(required=False)
     ada_id = forms.CharField(required=False)
+
+
 class RiderForm(forms.ModelForm):
     """
     Form bound to the AdaRiderQ model.  Since the database schema uses
@@ -13,6 +17,7 @@ class RiderForm(forms.ModelForm):
     database user has write permissions, but the NEW_ID primary key must
     already exist.
     """
+
     class Meta:
         model = AdaRiderQ
         fields = [
@@ -38,14 +43,12 @@ class RiderForm(forms.ModelForm):
             'Notes': 'Notes',
         }
 
-from django import forms
-from .models import AdaTicketPurchasesT
 
 class TicketForm(forms.ModelForm):
     class Meta:
         model = AdaTicketPurchasesT
         fields = [
-            'purdate', 'bkqty', 'puramt', 'paytype', 'chknum',
+            'purdate', 'bkqty', 'paytype', 'chknum',
             'deptenter',  # who entered (optional, if you use it)
             # we’ll set fname/lname in the view, but you *can* include them in the form if you want them editable
         ]
